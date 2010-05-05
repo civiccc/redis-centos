@@ -6,7 +6,7 @@ License: BSD
 Group: Applications/Multimedia
 URL: http://code.google.com/p/redis/
 
-Source0: http://github.com/antirez/redis/archives/v%{version}
+Source0: redis-%{version}.tar.gz
 Source1: redis.conf
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
