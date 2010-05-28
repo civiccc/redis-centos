@@ -1,7 +1,10 @@
+%define pid_dir %{_localstatedir}/run/redis
+%define pid_file %{pid_dir}/redis.pid
+
 Summary: redis
 Name: redis
 Version: 1.3.9
-Release: 1
+Release: 2
 License: BSD
 Group: Applications/Multimedia
 URL: http://code.google.com/p/redis/
@@ -55,7 +58,7 @@ EOF
 # description: A persistent key-value database with network interface
 # processname: redis-server
 # config: /etc/redis.conf
-# pidfile: /var/run/redis.pid
+# pidfile: /var/run/redis/redis.pid
 
 source %{_sysconfdir}/init.d/functions
 
@@ -64,7 +67,7 @@ prog="redis-server"
 
 start() {
 	echo -n $"Starting $prog: "
-	daemon --user redis --pidfile %{_localstatedir}/run/redis.pid %{_sbindir}/$prog /etc/redis.conf
+	daemon --user redis --pidfile %{pid_file} %{_sbindir}/$prog /etc/redis.conf
 	RETVAL=$?
 	echo
 	[ $RETVAL -eq 0 ] && touch %{_localstatedir}/lock/subsys/$prog
@@ -72,7 +75,7 @@ start() {
 }
 
 stop() {
-    PID=`cat /var/run/redis.pid 2>/dev/null`
+    PID=`cat %{pid_file} 2>/dev/null`
     if [ -n "$PID" ]; then
         echo "Shutdown may take a while; redis needs to save the entire database";
         echo -n $"Shutting down $prog: "
@@ -113,7 +116,7 @@ case "$1" in
 	stop
 	;;
   status)
-	status -p /var/run/redis.pid $prog
+	status -p %{pid_file} $prog
 	RETVAL=$?
 	;;
   restart)
@@ -146,7 +149,7 @@ mkdir -p %{buildroot}%{_bindir}
 %{__install} -Dp -m 0644 %{SOURCE1} %{buildroot}%{_sysconfdir}/redis.conf
 %{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/lib/redis
 %{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/log/redis
-%{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/run
+%{__install} -p -d -m 0755 %{buildroot}%{pid_dir}
 
 %pre
 /usr/sbin/useradd -c 'Redis' -u 499 -s /bin/false -r -d %{_localstatedir}/lib/redis redis 2> /dev/null || :
@@ -185,8 +188,14 @@ fi
 %{_sysconfdir}/logrotate.d/redis
 %dir %attr(0770,redis,redis) %{_localstatedir}/lib/redis
 %dir %attr(0755,redis,redis) %{_localstatedir}/log/redis
+%dir %attr(0755,redis,redis) %{_localstatedir}/run/redis
 
 %changelog
+* Fri May 28 2010 - jay at causes dot com 1.3.9-2
+- moved pidile back to /var/run/redis/redis.pid, so the redis
+  user can write to the pidfile
+- Factored it out into %{pid_dir} (/var/run/redis), and
+  %{pid_file} (%{pid_dir}/redis.pid)
 * Wed May 05 2010 - brad at causes dot com 1.3.9-1
 - redis updated to version 1.3.9 (development release from GitHub)
 - extract config file from spec file
