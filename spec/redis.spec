@@ -3,13 +3,13 @@
 
 Summary: redis
 Name: redis
-Version: 1.3.9
-Release: 2
+Version: 2.0.0
+Release: rc2
 License: BSD
 Group: Applications/Multimedia
 URL: http://code.google.com/p/redis/
 
-Source0: redis-%{version}.tar.gz
+Source0: redis-%{version}-%{release}.tar.gz
 Source1: redis.conf
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -58,7 +58,7 @@ EOF
 # description: A persistent key-value database with network interface
 # processname: redis-server
 # config: /etc/redis.conf
-# pidfile: /var/run/redis/redis.pid
+# pidfile: %{pidfile}
 
 source %{_sysconfdir}/init.d/functions
 
@@ -66,12 +66,12 @@ RETVAL=0
 prog="redis-server"
 
 start() {
-	echo -n $"Starting $prog: "
-	daemon --user redis --pidfile %{pid_file} %{_sbindir}/$prog /etc/redis.conf
-	RETVAL=$?
-	echo
-	[ $RETVAL -eq 0 ] && touch %{_localstatedir}/lock/subsys/$prog
-	return $RETVAL
+  echo -n $"Starting $prog: "
+  daemon --user redis --pidfile %{pid_file} %{_sbindir}/$prog /etc/redis.conf
+  RETVAL=$?
+  echo
+  [ $RETVAL -eq 0 ] && touch %{_localstatedir}/lock/subsys/$prog
+  return $RETVAL
 }
 
 stop() {
@@ -100,8 +100,8 @@ stop() {
 }
 
 restart() {
-	stop
-	start
+  stop
+  start
 }
 
 condrestart() {
@@ -110,24 +110,24 @@ condrestart() {
 
 case "$1" in
   start)
-	start
-	;;
+  start
+  ;;
   stop)
-	stop
-	;;
+  stop
+  ;;
   status)
-	status -p %{pid_file} $prog
-	RETVAL=$?
-	;;
+  status -p %{pid_file} $prog
+  RETVAL=$?
+  ;;
   restart)
-	restart
-	;;
+  restart
+  ;;
   condrestart|try-restart)
-	condrestart
-	;;
+  condrestart
+  ;;
    *)
-	echo $"Usage: $0 {start|stop|status|restart|condrestart}"
-	RETVAL=1
+  echo $"Usage: $0 {start|stop|status|restart|condrestart}"
+  RETVAL=1
 esac
 
 exit $RETVAL
@@ -191,11 +191,16 @@ fi
 %dir %attr(0755,redis,redis) %{_localstatedir}/run/redis
 
 %changelog
-* Fri May 28 2010 - jay at causes dot com 1.3.9-2
-- moved pidile back to /var/run/redis/redis.pid, so the redis
-  user can write to the pidfile
+* Tue Jul 13 2010 - jay at causes dot com 2.0.0-rc2
+- upped to 2.0.0-rc2
+
+* Mon May 24 2010 - jay at causes dot com 1.3.9-2
+- moved pidfile back to /var/run/redis/redis.pid, so the redis
+  user can write to the pidfile.
 - Factored it out into %{pid_dir} (/var/run/redis), and
   %{pid_file} (%{pid_dir}/redis.pid)
+
+
 * Wed May 05 2010 - brad at causes dot com 1.3.9-1
 - redis updated to version 1.3.9 (development release from GitHub)
 - extract config file from spec file
@@ -242,4 +247,3 @@ fi
 
 * Tue Apr 14 2009 - jpriebe at cbcnewmedia dot com 0.091-1
 - Initial release.
-
