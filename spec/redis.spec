@@ -3,8 +3,8 @@
 
 Summary: redis
 Name: redis
-Version: 2.0.0
-Release: rc2
+Version: 2.4.0
+Release: rc8
 License: BSD
 Group: Applications/Multimedia
 URL: http://code.google.com/p/redis/
@@ -39,7 +39,7 @@ and so on. Redis is free software released under the very liberal BSD license.
 
 
 %prep
-%setup
+%setup -n %{name}-%{version}-%{release}
 
 %{__cat} <<EOF >redis.logrotate
 %{_localstatedir}/log/redis/*log {
@@ -140,15 +140,16 @@ EOF
 %install
 %{__rm} -rf %{buildroot}
 mkdir -p %{buildroot}%{_bindir}
-%{__install} -Dp -m 0755 redis-server %{buildroot}%{_sbindir}/redis-server
-%{__install} -Dp -m 0755 redis-benchmark %{buildroot}%{_bindir}/redis-benchmark
-%{__install} -Dp -m 0755 redis-cli %{buildroot}%{_bindir}/redis-cli
+%{__install} -Dp -m 0755 src/redis-server %{buildroot}%{_sbindir}/redis-server
+%{__install} -Dp -m 0755 src/redis-benchmark %{buildroot}%{_bindir}/redis-benchmark
+%{__install} -Dp -m 0755 src/redis-cli %{buildroot}%{_bindir}/redis-cli
 
 %{__install} -Dp -m 0755 redis.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/redis
 %{__install} -Dp -m 0755 redis.sysv %{buildroot}%{_sysconfdir}/init.d/redis
 %{__install} -Dp -m 0644 %{SOURCE1} %{buildroot}%{_sysconfdir}/redis.conf
 %{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/lib/redis
 %{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/log/redis
+%{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/redis
 %{__install} -p -d -m 0755 %{buildroot}%{pid_dir}
 
 %pre
@@ -179,7 +180,7 @@ fi
 
 %files
 %defattr(-, root, root, 0755)
-%doc doc/*.html
+#%doc doc/*.html
 %{_sbindir}/redis-server
 %{_bindir}/redis-benchmark
 %{_bindir}/redis-cli
@@ -189,6 +190,7 @@ fi
 %dir %attr(0770,redis,redis) %{_localstatedir}/lib/redis
 %dir %attr(0755,redis,redis) %{_localstatedir}/log/redis
 %dir %attr(0755,redis,redis) %{_localstatedir}/run/redis
+%dir %attr(0755,redis,redis) %{_localstatedir}/redis
 
 %changelog
 * Tue Jul 13 2010 - jay at causes dot com 2.0.0-rc2
