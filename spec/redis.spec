@@ -3,16 +3,16 @@
 
 Summary: redis
 Name: redis
-Version: 2.0.0
-Release: rc2
+Version: 2.4.6
+Release: stable
 License: BSD
 Group: Applications/Multimedia
 URL: http://code.google.com/p/redis/
 
-Source0: redis-%{version}-%{release}.tar.gz
+Source0: redis-%{version}.tar.gz
 Source1: redis.conf
 
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
+BuildRoot: %{_tmppath}/%{name}-%{version}-root
 BuildRequires: gcc, make
 Requires(post): /sbin/chkconfig /usr/sbin/useradd
 Requires(preun): /sbin/chkconfig, /sbin/service
@@ -140,9 +140,9 @@ EOF
 %install
 %{__rm} -rf %{buildroot}
 mkdir -p %{buildroot}%{_bindir}
-%{__install} -Dp -m 0755 redis-server %{buildroot}%{_sbindir}/redis-server
-%{__install} -Dp -m 0755 redis-benchmark %{buildroot}%{_bindir}/redis-benchmark
-%{__install} -Dp -m 0755 redis-cli %{buildroot}%{_bindir}/redis-cli
+%{__install} -Dp -m 0755 src/redis-server %{buildroot}%{_sbindir}/redis-server
+%{__install} -Dp -m 0755 src/redis-benchmark %{buildroot}%{_bindir}/redis-benchmark
+%{__install} -Dp -m 0755 src/redis-cli %{buildroot}%{_bindir}/redis-cli
 
 %{__install} -Dp -m 0755 redis.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/redis
 %{__install} -Dp -m 0755 redis.sysv %{buildroot}%{_sysconfdir}/init.d/redis
@@ -179,7 +179,6 @@ fi
 
 %files
 %defattr(-, root, root, 0755)
-%doc doc/*.html
 %{_sbindir}/redis-server
 %{_bindir}/redis-benchmark
 %{_bindir}/redis-cli
@@ -191,6 +190,9 @@ fi
 %dir %attr(0755,redis,redis) %{_localstatedir}/run/redis
 
 %changelog
+* Mon Jan 16 2012 - fixing compatibility issues with 2.4.6
+- upped to 2.4.6 stable
+
 * Tue Jul 13 2010 - jay at causes dot com 2.0.0-rc2
 - upped to 2.0.0-rc2
 
