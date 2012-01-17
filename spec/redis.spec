@@ -42,7 +42,7 @@ and so on. Redis is free software released under the very liberal BSD license.
 %setup
 
 %{__cat} <<EOF >redis.logrotate
-%{_localstatedir}/log/redis/*log {
+%{_localstatedir}/redis/*log {
     missingok
 }
 EOF
@@ -66,17 +66,34 @@ RETVAL=0
 prog="redis-server"
 
 start() {
-  echo -n $"Starting $prog: "
-  daemon --user redis --pidfile %{pid_file} %{_sbindir}/$prog /etc/redis.conf
-  RETVAL=$?
-  echo
-  [ $RETVAL -eq 0 ] && touch %{_localstatedir}/lock/subsys/$prog
-  return $RETVAL
+    PID=`cat /var/run/redis.pid 2>/dev/null`
+    checkpid $PID
+    PIDCHECK=$?
+    if [ "$PIDCHECK" -eq 1 ]; then
+        if [ -e /var/run/redis.pid ]; then
+            rm -f /var/run/redis.pid
+        fi
+        echo -n $"Starting $prog: "
+        daemon --user redis --pidfile /var/run/redis.pid /usr/sbin/$prog /etc/redis.conf
+        RETVAL=$?
+        echo
+        [ $RETVAL -eq 0 ] && touch /var/lock/subsys/$prog && pgrep redis-server > /var/run/redis.pid
+        return $RETVAL
+    else
+        echo "Service already running"
+        return 0
+    fi
 }
 
 stop() {
-    PID=`cat %{pid_file} 2>/dev/null`
-    if [ -n "$PID" ]; then
+    PID=`cat /var/run/redis.pid 2>/dev/null`
+    checkpid $PID
+    PIDCHECK=$?
+    if [ "$PIDCHECK" -eq 1 ]; then
+        echo -n $"$prog is not running"
+        echo_failure
+        RETVAL=1
+    else
         echo "Shutdown may take a while; redis needs to save the entire database";
         echo -n $"Shutting down $prog: "
         /usr/bin/redis-cli shutdown
@@ -86,13 +103,10 @@ stop() {
         else
             rm -f /var/lib/redis/temp*rdb
             rm -f /var/lock/subsys/$prog
+            rm -f /var/run/redis.pid
             echo_success
             RETVAL=0
         fi
-    else
-        echo -n $"$prog is not running"
-        echo_failure
-        RETVAL=1
     fi
 
     echo
