@@ -147,12 +147,15 @@ mkdir -p %{buildroot}%{_bindir}
 %{__install} -Dp -m 0755 redis.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/redis
 %{__install} -Dp -m 0755 redis.sysv %{buildroot}%{_sysconfdir}/init.d/redis
 %{__install} -Dp -m 0644 %{SOURCE1} %{buildroot}%{_sysconfdir}/redis.conf
+
 %{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/lib/redis
 %{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/log/redis
 %{__install} -p -d -m 0755 %{buildroot}%{pid_dir}
 
 %pre
 /usr/sbin/useradd -c 'Redis' -u 499 -s /bin/false -r -d %{_localstatedir}/lib/redis redis 2> /dev/null || :
+mkdir /var/redis
+/bin/chown redis /var/redis
 
 %preun
 if [ $1 = 0 ]; then
@@ -173,6 +176,7 @@ fi
 
 %post
 /sbin/chkconfig --add redis
+/sbin/service redis start
 
 %clean
 %{__rm} -rf %{buildroot}
@@ -190,9 +194,6 @@ fi
 %dir %attr(0755,redis,redis) %{_localstatedir}/run/redis
 
 %changelog
-* Mon Jan 16 2012 - fixing compatibility issues with 2.4.6
-- upped to 2.4.6 stable
-
 * Tue Jul 13 2010 - jay at causes dot com 2.0.0-rc2
 - upped to 2.0.0-rc2
 
