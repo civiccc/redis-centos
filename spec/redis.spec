@@ -3,16 +3,16 @@
 
 Summary: redis
 Name: redis
-Version: 2.0.0
-Release: rc2
+Version: 2.4.6
+Release: stable
 License: BSD
 Group: Applications/Multimedia
 URL: http://code.google.com/p/redis/
 
-Source0: redis-%{version}-%{release}.tar.gz
+Source0: redis-%{version}.tar.gz
 Source1: redis.conf
 
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
+BuildRoot: %{_tmppath}/%{name}-%{version}-root
 BuildRequires: gcc, make
 Requires(post): /sbin/chkconfig /usr/sbin/useradd
 Requires(preun): /sbin/chkconfig, /sbin/service
@@ -42,7 +42,7 @@ and so on. Redis is free software released under the very liberal BSD license.
 %setup
 
 %{__cat} <<EOF >redis.logrotate
-%{_localstatedir}/log/redis/*log {
+%{_localstatedir}/redis/*log {
     missingok
 }
 EOF
@@ -66,17 +66,34 @@ RETVAL=0
 prog="redis-server"
 
 start() {
-  echo -n $"Starting $prog: "
-  daemon --user redis --pidfile %{pid_file} %{_sbindir}/$prog /etc/redis.conf
-  RETVAL=$?
-  echo
-  [ $RETVAL -eq 0 ] && touch %{_localstatedir}/lock/subsys/$prog
-  return $RETVAL
+    PID=`cat /var/run/redis.pid 2>/dev/null`
+    checkpid $PID
+    PIDCHECK=$?
+    if [ "$PIDCHECK" -eq 1 ]; then
+        if [ -e /var/run/redis.pid ]; then
+            rm -f /var/run/redis.pid
+        fi
+        echo -n $"Starting $prog: "
+        daemon --user redis --pidfile /var/run/redis.pid /usr/sbin/$prog /etc/redis.conf
+        RETVAL=$?
+        echo
+        [ $RETVAL -eq 0 ] && touch /var/lock/subsys/$prog && pgrep redis-server > /var/run/redis.pid
+        return $RETVAL
+    else
+        echo "Service already running"
+        return 0
+    fi
 }
 
 stop() {
-    PID=`cat %{pid_file} 2>/dev/null`
-    if [ -n "$PID" ]; then
+    PID=`cat /var/run/redis.pid 2>/dev/null`
+    checkpid $PID
+    PIDCHECK=$?
+    if [ "$PIDCHECK" -eq 1 ]; then
+        echo -n $"$prog is not running"
+        echo_failure
+        RETVAL=1
+    else
         echo "Shutdown may take a while; redis needs to save the entire database";
         echo -n $"Shutting down $prog: "
         /usr/bin/redis-cli shutdown
@@ -86,13 +103,10 @@ stop() {
         else
             rm -f /var/lib/redis/temp*rdb
             rm -f /var/lock/subsys/$prog
+            rm -f /var/run/redis.pid
             echo_success
             RETVAL=0
         fi
-    else
-        echo -n $"$prog is not running"
-        echo_failure
-        RETVAL=1
     fi
 
     echo
@@ -140,19 +154,22 @@ EOF
 %install
 %{__rm} -rf %{buildroot}
 mkdir -p %{buildroot}%{_bindir}
-%{__install} -Dp -m 0755 redis-server %{buildroot}%{_sbindir}/redis-server
-%{__install} -Dp -m 0755 redis-benchmark %{buildroot}%{_bindir}/redis-benchmark
-%{__install} -Dp -m 0755 redis-cli %{buildroot}%{_bindir}/redis-cli
+%{__install} -Dp -m 0755 src/redis-server %{buildroot}%{_sbindir}/redis-server
+%{__install} -Dp -m 0755 src/redis-benchmark %{buildroot}%{_bindir}/redis-benchmark
+%{__install} -Dp -m 0755 src/redis-cli %{buildroot}%{_bindir}/redis-cli
 
 %{__install} -Dp -m 0755 redis.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/redis
 %{__install} -Dp -m 0755 redis.sysv %{buildroot}%{_sysconfdir}/init.d/redis
 %{__install} -Dp -m 0644 %{SOURCE1} %{buildroot}%{_sysconfdir}/redis.conf
+
 %{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/lib/redis
 %{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/log/redis
 %{__install} -p -d -m 0755 %{buildroot}%{pid_dir}
 
 %pre
 /usr/sbin/useradd -c 'Redis' -u 499 -s /bin/false -r -d %{_localstatedir}/lib/redis redis 2> /dev/null || :
+mkdir /var/redis
+/bin/chown redis /var/redis
 
 %preun
 if [ $1 = 0 ]; then
@@ -173,13 +190,13 @@ fi
 
 %post
 /sbin/chkconfig --add redis
+/sbin/service redis start
 
 %clean
 %{__rm} -rf %{buildroot}
 
 %files
 %defattr(-, root, root, 0755)
-%doc doc/*.html
 %{_sbindir}/redis-server
 %{_bindir}/redis-benchmark
 %{_bindir}/redis-cli
